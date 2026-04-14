@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { Camera } from "lucide-react";
 
 /* ─── types ─── */
 type IssueType = "" | "missing_parts" | "damaged_locker_module" | "faulty_component" | "other";
@@ -718,7 +719,7 @@ function FileUploader({
         {label} {required && <span className="req">*</span>}
       </label>
       <div className={`upload-box ${error ? "error-border" : ""}`}>
-        <span>📷 Add Photos</span>
+        <span><Camera size={16} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />Add Photos</span>
         <span className="muted-text">
           {files.length}/{maxFiles}
         </span>

@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { Search, Package, ShoppingCart, Building2, MapPin, Calendar, Settings, Pencil, Clock, Box, Mail, CheckCircle, ExternalLink, RotateCcw } from "lucide-react";
 
 /* ─── types ─── */
 interface PartItem {
   id: string;
   name: string;
   sku: string;
-  price: number;
+  price: number | null;
+  leadTime: number | null;
+  moq: number | null;
   category: string;
 }
 
@@ -16,36 +19,82 @@ interface CartItem {
   qty: number;
 }
 
-/* ─── sample data ─── */
-const CATEGORIES = ["All", "Base", "Cables", "Fasteners", "Keys and Locks", "Metal Parts", "Metal Accessories", "Other"];
+/* ─── catalog data ─── */
+const CATEGORIES = ["All", "Metal Parts", "Fasteners", "Cables", "Accessories", "Anchoring", "Cameras"];
 
 const WAREHOUSES: Record<string, string[]> = {
-  Portugal: ["Oporto Office", "Lisbon Warehouse"],
-  France: ["FRDISROU", "FRDISHIL", "FRDISPAR"],
-  Spain: ["Madrid Warehouse", "Barcelona Warehouse"],
-  Italy: ["Milan Warehouse", "Rome Warehouse"],
-  Poland: ["Warsaw Warehouse", "Krakow Warehouse"],
+  "United Kingdom": ["PRINCIPLE"],
 };
 
 const PARTS: PartItem[] = [
-  { id: "1", name: "Acc Anchor MTP A4 M12x110", sku: "acc-anchor_MTP_A4_m12x110", price: 83.01, category: "Metal Accessories" },
-  { id: "2", name: "Acc Foot Rubber M8x80 Inox Varisom", sku: "acc-foot-rubber-m8x80_inox-varisom", price: 29.15, category: "Metal Accessories" },
-  { id: "3", name: "Acc Gasket Trelleborg T GD36", sku: "acc-gasket-trelleborg-T-GD36", price: 92.64, category: "Metal Accessories" },
-  { id: "4", name: "Acc Top Lock Flat Key Cod.3 KeyOnly", sku: "acc-top-lock-flat_key_cod.3-KeyOnly", price: 55.26, category: "Keys and Locks" },
-  { id: "5", name: "Acc Washer M4 ECU Earth", sku: "acc-washer-M4-ECU_earth", price: 143.44, category: "Fasteners" },
-  { id: "6", name: "Cable Power 3m EU", sku: "cable-power-3m-EU", price: 12.50, category: "Cables" },
-  { id: "7", name: "Cable Data USB-C 1.5m", sku: "cable-data-usbc-1.5m", price: 8.75, category: "Cables" },
-  { id: "8", name: "Base Plate Steel 400x300", sku: "base-plate-steel-400x300", price: 67.30, category: "Base" },
-  { id: "9", name: "Base Frame Aluminium L-Type", sku: "base-frame-alu-l-type", price: 124.90, category: "Base" },
-  { id: "10", name: "Fastener Bolt M6x20 SS", sku: "fastener-bolt-m6x20-ss", price: 1.85, category: "Fasteners" },
-  { id: "11", name: "Fastener Nut M6 SS", sku: "fastener-nut-m6-ss", price: 0.95, category: "Fasteners" },
-  { id: "12", name: "Metal Part Bracket Z-Type", sku: "metal-bracket-z-type", price: 34.20, category: "Metal Parts" },
-  { id: "13", name: "Metal Part Hinge Heavy Duty", sku: "metal-hinge-heavy-duty", price: 18.60, category: "Metal Parts" },
-  { id: "14", name: "Key Cylinder Euro Profile", sku: "key-cylinder-euro", price: 42.00, category: "Keys and Locks" },
-  { id: "15", name: "Lock Padlock 40mm Brass", sku: "lock-padlock-40mm-brass", price: 15.90, category: "Keys and Locks" },
-  { id: "16", name: "Other Silicone Sealant 300ml", sku: "other-silicone-sealant-300ml", price: 7.45, category: "Other" },
-  { id: "17", name: "Other Label Thermal 100x50", sku: "other-label-thermal-100x50", price: 22.00, category: "Other" },
-  { id: "18", name: "Cable Network Cat6 5m", sku: "cable-network-cat6-5m", price: 11.20, category: "Cables" },
+  /* ── Metal Parts ── */
+  { id: "1", name: "Front Footpanel NEXT-v2.0.1", sku: "112105008018", price: null, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "2", name: "Back Footpanel NEXT-v2.0.1", sku: "112105009016", price: null, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "14", name: "Front Skirt NEXT STD Concrete Base v2.1.2", sku: "112000005001", price: 34.15, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "15", name: "Rear Skirt NEXT STD Concrete Base v2.1.2", sku: "112000008001", price: null, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "16", name: "Side Skirt NEXT Standard Concrete Base v2.1.2", sku: "112000004001", price: 26.80, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "17", name: "Anchor Plate NEXT STD Concrete Base v2.1.3", sku: "112000010000", price: 21.95, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "18", name: "Anchor Plate Cover NEXT STD Concrete Base v2.1.2", sku: "112000009001", price: 7.80, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "27", name: "Halo Kit NEXT STD v2.1.0", sku: "253000022001", price: 230.00, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "56", name: "Anchoring Support Assembly with Cover", sku: "253000219000", price: null, leadTime: 7, moq: 10, category: "Metal Parts" },
+  { id: "57", name: "Anchoring Support Assembly without Cover", sku: "253000220000", price: null, leadTime: 7, moq: 10, category: "Metal Parts" },
+
+  /* ── Fasteners ── */
+  { id: "3", name: "Screw Column Bottom Fix M5x110", sku: "113099011000", price: 1.25, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "4", name: "Screw Column Top Fix M5x25", sku: "113099010000", price: 8.40, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "5", name: "Screw Hex Socket Cap M5x60 Zinc", sku: "113000032000", price: 5.90, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "6", name: "Screw Hex Socket M5x16 Zinc", sku: "113000033000", price: 0.02, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "7", name: "Nut M5 Nyloc Zinc", sku: "113009044000", price: 2.50, leadTime: 5, moq: 750, category: "Fasteners" },
+  { id: "8", name: "Washer Plain Steel M5", sku: "113000012000", price: 0.04, leadTime: 5, moq: 1500, category: "Fasteners" },
+  { id: "9", name: "Screw Cross Cheese M4x10", sku: "113000014000", price: 0.04, leadTime: 5, moq: 1200, category: "Fasteners" },
+  { id: "10", name: "Washer M4 ECU Earth", sku: "113009020000", price: 0.10, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "21", name: "Screw Hex Flange M10X35 Stainless", sku: "113000002000", price: 0.30, leadTime: 5, moq: 300, category: "Fasteners" },
+  { id: "22", name: "Screw Cross Cheese M4x08", sku: "113000003000", price: 0.10, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "23", name: "Washer Plain Stainless M12", sku: "113000008000", price: 0.70, leadTime: 5, moq: 500, category: "Fasteners" },
+  { id: "24", name: "Screw Socket M8x25 Stainless", sku: "113000011000", price: 0.20, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "25", name: "Washer Plain Stainless M8", sku: "113000006000", price: 0.02, leadTime: 5, moq: 500, category: "Fasteners" },
+  { id: "29", name: "Screw Countersunk Philips M5x12", sku: "113000021000", price: 0.10, leadTime: 5, moq: 600, category: "Fasteners" },
+  { id: "30", name: "Screw Cheese Phillips M5x10 Zinc", sku: "113099034000", price: 0.05, leadTime: 5, moq: 600, category: "Fasteners" },
+
+  /* ── Cables ── */
+  { id: "28", name: "LED Strip Cable VTAC 4.2W 3000K", sku: "245005002000", price: 6.00, leadTime: 5, moq: 20, category: "Cables" },
+  { id: "43", name: "Cable RJ45 FTP 5m (KR-CU to KR-CU)", sku: "127000105000", price: null, leadTime: 5, moq: 20, category: "Cables" },
+  { id: "44", name: "Cable RJ45 FTP 2m (ECU to Kerong)", sku: "127028008000", price: null, leadTime: 5, moq: 20, category: "Cables" },
+  { id: "45", name: "Cable RJ45 FTP 3m (KR-CU to KR-CU)", sku: "127028002000", price: 2.56, leadTime: 5, moq: 20, category: "Cables" },
+  { id: "47", name: "Intrusion Sensor Cable 2m", sku: "245000106000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "48", name: "Ground Cable 2m", sku: "245000108000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "49", name: "RJ45 Cable 2m", sku: "127000169000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "50", name: "Intrusion Sensor Cable 5m", sku: "245000109000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "51", name: "Ground Cable 5m", sku: "245000110000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "52", name: "RJ45 Cable 5m", sku: "127000170000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "53", name: "Intrusion Sensor Cable 10m", sku: "245000112000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "54", name: "Ground Cable 10m", sku: "245000113000", price: null, leadTime: null, moq: null, category: "Cables" },
+  { id: "55", name: "RJ45 Cable 10m", sku: "127000171000", price: null, leadTime: null, moq: null, category: "Cables" },
+
+  /* ── Accessories ── */
+  { id: "11", name: "Top Lock Cover Plastic Flat Key", sku: "114099012000", price: 5.45, leadTime: 5, moq: 100, category: "Accessories" },
+  { id: "12", name: "Grommet Conical M25", sku: "114000004000", price: 1.55, leadTime: 5, moq: 30, category: "Accessories" },
+  { id: "13", name: "Gasket Trelleborg T-GD36", sku: "114099009000", price: 4.40, leadTime: 5, moq: 30, category: "Accessories" },
+  { id: "19", name: "Leveling Feet M20X100", sku: "114000003000", price: 40.00, leadTime: 7, moq: 50, category: "Accessories" },
+  { id: "26", name: "Foot Rubber M8x80 Inox Varisom", sku: "114002008000", price: 4.40, leadTime: 5, moq: 50, category: "Accessories" },
+  { id: "46", name: "Locker Key (Flat Key Cod.4)", sku: "114079007000", price: null, leadTime: 5, moq: 20, category: "Accessories" },
+
+  /* ── Anchoring ── */
+  { id: "20", name: "MTP Anchor M12x110", sku: "114000002000", price: 7.60, leadTime: 7, moq: 25, category: "Anchoring" },
+  { id: "31", name: "Chemical Injection Mortar 360ML", sku: "115000006000", price: 15.05, leadTime: 5, moq: 10, category: "Anchoring" },
+  { id: "32", name: "Chemical Anchor Sleeve Ø20x135", sku: "115000003000", price: 1.95, leadTime: 5, moq: 10, category: "Anchoring" },
+  { id: "33", name: "Threaded Rod + Nut + Washer M12x140", sku: "113000037000", price: 3.70, leadTime: 5, moq: 450, category: "Anchoring" },
+  { id: "34", name: "Threaded Rod + Nut + Washer M12x200", sku: "113000133000", price: 6.10, leadTime: 5, moq: 450, category: "Anchoring" },
+  { id: "35", name: "Chemical Anchor Sleeve Ø18x130-200mm", sku: "115000011000", price: 2.70, leadTime: 5, moq: 450, category: "Anchoring" },
+  { id: "36", name: "Epoxy Chemical Injection WIT-PE-1000", sku: "115000005000", price: 44.00, leadTime: 5, moq: 30, category: "Anchoring" },
+  { id: "37", name: "Asphalt Tie Bolt Ø16x155mm M16", sku: "113000062000", price: 11.60, leadTime: 6, moq: 100, category: "Anchoring" },
+  { id: "38", name: "Thread Reducer M16-M12", sku: "113000063000", price: 3.75, leadTime: 6, moq: 100, category: "Anchoring" },
+  { id: "39", name: "Hex Bolt M12x30 Stainless", sku: "113000064000", price: 0.30, leadTime: 5, moq: 300, category: "Anchoring" },
+  { id: "40", name: "Large Washer M12 Stainless", sku: "113000041000", price: 0.15, leadTime: 5, moq: 600, category: "Anchoring" },
+
+  /* ── Cameras ── */
+  { id: "41", name: "Camera Left", sku: "246000100000", price: null, leadTime: 14, moq: 1, category: "Cameras" },
+  { id: "42", name: "Camera Right", sku: "246000098000", price: null, leadTime: 14, moq: 1, category: "Cameras" },
 ];
 
 /* ─── CSS ─── */
@@ -294,6 +343,23 @@ const css = `
     margin-top: 4px;
     color: var(--text);
   }
+  .part-price.no-price {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .part-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .part-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
   .part-badge {
     position: absolute;
     top: 8px; right: 8px;
@@ -502,6 +568,147 @@ const css = `
     font-weight: 800;
   }
 
+  /* ─ email confirmation ─ */
+  .email-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .email-banner {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .email-banner-icon {
+    width: 56px; height: 56px;
+    border-radius: 999px;
+    background: #10b981;
+    color: #fff;
+    display: inline-grid;
+    place-items: center;
+    margin-bottom: 12px;
+  }
+  .email-banner h2 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    color: #065f46;
+  }
+  .email-banner p {
+    font-size: 14px;
+    color: #047857;
+    margin: 0;
+  }
+  .email-body {
+    padding: 28px 24px;
+  }
+  .email-subject {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 4px;
+  }
+  .email-subject-value {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .email-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+  .email-text {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.7;
+    margin: 0 0 16px;
+  }
+  .email-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .email-summary-table th {
+    text-align: left;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .email-summary-table th:nth-child(2) { text-align: center; }
+  .email-summary-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f3f4f6;
+    color: var(--text);
+  }
+  .email-summary-table td:nth-child(2) { text-align: center; }
+  .email-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .email-disclaimer {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #92400e;
+    line-height: 1.6;
+    margin: 20px 0 0;
+  }
+  .email-signature {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .email-sig-thanks {
+    font-size: 14px;
+    color: #374151;
+    margin: 0 0 4px;
+  }
+  .email-sig-dept {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px;
+  }
+  .email-sig-company {
+    font-size: 16px;
+    font-weight: 800;
+    color: #C4553A;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+  .new-order-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 44px;
+    border-radius: 999px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
   @media (max-width: 700px) {
     .parts-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .cart-item { flex-wrap: wrap; }
@@ -513,7 +720,8 @@ const css = `
 `;
 
 /* ─── helpers ─── */
-function formatEuro(val: number) {
+function formatEuro(val: number | null) {
+  if (val === null) return "—";
   return "€" + val.toFixed(2);
 }
 
@@ -663,15 +871,20 @@ function StepParts({
     if (existing) {
       setCart(cart.filter((c) => c.part.id !== part.id));
     } else {
-      setCart([...cart, { part, qty: 1 }]);
+      setCart([...cart, { part, qty: part.moq ?? 1 }]);
     }
   };
 
   const updateQty = (id: string, delta: number) => {
     setCart(
       cart
-        .map((c) => (c.part.id === id ? { ...c, qty: Math.max(0, c.qty + delta) } : c))
-        .filter((c) => c.qty > 0)
+        .map((c) => {
+          if (c.part.id !== id) return c;
+          const minQty = c.part.moq ?? 1;
+          const newQty = c.qty + delta;
+          if (newQty < minQty) return c;
+          return { ...c, qty: newQty };
+        })
     );
   };
 
@@ -679,7 +892,8 @@ function StepParts({
     setCart(cart.filter((c) => c.part.id !== id));
   };
 
-  const total = cart.reduce((sum, c) => sum + c.part.price * c.qty, 0);
+  const total = cart.reduce((sum, c) => sum + (c.part.price ?? 0) * c.qty, 0);
+  const hasUnpriced = cart.some((c) => c.part.price === null);
 
   return (
     <>
@@ -687,7 +901,7 @@ function StepParts({
         <h2 className="card-title">Select Parts</h2>
 
         <div className="search-box">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             type="text"
             placeholder="Search parts..."
@@ -719,11 +933,19 @@ function StepParts({
                 onClick={() => togglePart(part)}
               >
                 {qty && <div className="part-badge">{qty}</div>}
-                <div className="part-thumb">📦</div>
+                <div className="part-thumb"><Package size={36} strokeWidth={1.5} /></div>
                 <div className="part-info">
                   <div className="part-name">{part.name}</div>
                   <div className="part-sku">{part.sku}</div>
-                  <div className="part-price">{formatEuro(part.price)}</div>
+                  {part.price !== null ? (
+                    <div className="part-price">{formatEuro(part.price)}</div>
+                  ) : (
+                    <div className="part-price no-price">Price on request</div>
+                  )}
+                  <div className="part-meta">
+                    {part.leadTime !== null && <span><Clock size={11} /> {part.leadTime}wk</span>}
+                    {part.moq !== null && <span>MOQ {part.moq}</span>}
+                  </div>
                 </div>
               </div>
             );
@@ -733,9 +955,12 @@ function StepParts({
         {/* Cart */}
         <div className="cart-section">
           <div className="cart-header">
-            <span className="cart-title">🛒 Selected Items ({cart.reduce((s, c) => s + c.qty, 0)})</span>
-            <span className="cart-total">{formatEuro(total)}</span>
+            <span className="cart-title"><ShoppingCart size={16} style={{ display: "inline", verticalAlign: "-2px", marginRight: 6 }} />Selected Items ({cart.reduce((s, c) => s + c.qty, 0)})</span>
+            <span className="cart-total">{formatEuro(total)}{hasUnpriced ? "*" : ""}</span>
           </div>
+          {hasUnpriced && (
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>* Some items require price confirmation</div>
+          )}
           {cart.length === 0 ? (
             <div className="cart-empty">No items selected</div>
           ) : (
@@ -743,7 +968,7 @@ function StepParts({
               <div key={item.part.id} className="cart-item">
                 <div className="cart-item-info">
                   <div className="cart-item-name">{item.part.name}</div>
-                  <div className="cart-item-price">{formatEuro(item.part.price)} each</div>
+                  <div className="cart-item-price">{item.part.price !== null ? `${formatEuro(item.part.price)} each` : "Price on request"}</div>
                 </div>
                 <div className="cart-controls">
                   <button className="qty-btn" onClick={(e) => { e.stopPropagation(); updateQty(item.part.id, -1); }}>−</button>
@@ -751,7 +976,7 @@ function StepParts({
                   <button className="qty-btn" onClick={(e) => { e.stopPropagation(); updateQty(item.part.id, 1); }}>+</button>
                   <button className="remove-btn" onClick={(e) => { e.stopPropagation(); removeItem(item.part.id); }}>✕</button>
                 </div>
-                <div className="cart-item-subtotal">{formatEuro(item.part.price * item.qty)}</div>
+                <div className="cart-item-subtotal">{item.part.price !== null ? formatEuro(item.part.price * item.qty) : "—"}</div>
               </div>
             ))
           )}
@@ -771,7 +996,7 @@ function StepParts({
 /* ─── Step 3: Confirm Order ─── */
 function StepConfirm({
   country, warehouse, deliveryDate, cart,
-  onBack, onEditLocation, onEditParts,
+  onBack, onEditLocation, onEditParts, onSubmit,
 }: {
   country: string;
   warehouse: string;
@@ -780,9 +1005,11 @@ function StepConfirm({
   onBack: () => void;
   onEditLocation: () => void;
   onEditParts: () => void;
+  onSubmit: () => void;
 }) {
-  const total = cart.reduce((sum, c) => sum + c.part.price * c.qty, 0);
+  const total = cart.reduce((sum, c) => sum + (c.part.price ?? 0) * c.qty, 0);
   const totalQty = cart.reduce((s, c) => s + c.qty, 0);
+  const hasUnpriced = cart.some((c) => c.part.price === null);
 
   const handleSubmit = () => {
     const payload = {
@@ -795,12 +1022,13 @@ function StepConfirm({
         sku: c.part.sku,
         qty: c.qty,
         price: c.part.price,
-        subtotal: c.part.price * c.qty,
+        subtotal: c.part.price !== null ? c.part.price * c.qty : null,
       })),
       total,
+      hasUnpricedItems: hasUnpriced,
     };
-    alert("Order submitted! Check the browser console for the payload.");
     console.log("Order payload:", payload);
+    onSubmit();
   };
 
   return (
@@ -809,7 +1037,7 @@ function StepConfirm({
         <h2 className="card-title">Confirm Order</h2>
 
         <div className="confirm-row">
-          <span className="confirm-icon">🏢</span>
+          <span className="confirm-icon"><Building2 size={18} /></span>
           <div>
             <div className="confirm-label">Partner</div>
             <div className="confirm-value">Evri</div>
@@ -817,18 +1045,18 @@ function StepConfirm({
         </div>
 
         <div className="confirm-row">
-          <span className="confirm-icon">📍</span>
+          <span className="confirm-icon"><MapPin size={18} /></span>
           <div>
             <div className="confirm-label">Country</div>
             <div className="confirm-value">{country}</div>
             <div className="confirm-label" style={{ marginTop: 4 }}>Warehouse</div>
             <div className="confirm-value">{warehouse}</div>
           </div>
-          <button className="confirm-edit" onClick={onEditLocation} title="Edit">✏️</button>
+          <button className="confirm-edit" onClick={onEditLocation} title="Edit"><Pencil size={14} /></button>
         </div>
 
         <div className="confirm-row">
-          <span className="confirm-icon">📅</span>
+          <span className="confirm-icon"><Calendar size={18} /></span>
           <div>
             <div className="confirm-label">Desired Delivery Date</div>
             <div className="confirm-value">{formatDate(deliveryDate)}</div>
@@ -837,8 +1065,8 @@ function StepConfirm({
 
         {/* Items */}
         <div className="items-header">
-          <span className="items-title">⚙️ Items ({totalQty})</span>
-          <button className="confirm-edit" onClick={onEditParts} title="Edit">✏️</button>
+          <span className="items-title"><Settings size={16} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />Items ({totalQty})</span>
+          <button className="confirm-edit" onClick={onEditParts} title="Edit"><Pencil size={14} /></button>
         </div>
 
         <table className="order-table">
@@ -858,8 +1086,8 @@ function StepConfirm({
                   <div className="item-sku">{item.part.sku}</div>
                 </td>
                 <td>{item.qty}</td>
-                <td>{formatEuro(item.part.price)}</td>
-                <td className="subtotal">{formatEuro(item.part.price * item.qty)}</td>
+                <td>{item.part.price !== null ? formatEuro(item.part.price) : <span style={{ color: "#9ca3af", fontSize: 12 }}>On request</span>}</td>
+                <td className="subtotal">{item.part.price !== null ? formatEuro(item.part.price * item.qty) : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -867,8 +1095,11 @@ function StepConfirm({
 
         <div className="order-total-row">
           <span className="order-total-label">Total</span>
-          <span className="order-total-value">{formatEuro(total)}</span>
+          <span className="order-total-value">{formatEuro(total)}{hasUnpriced ? "*" : ""}</span>
         </div>
+        {hasUnpriced && (
+          <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "right", marginTop: 4 }}>* Some items require price confirmation</div>
+        )}
       </div>
 
       <div className="nav-row">
@@ -881,6 +1112,106 @@ function StepConfirm({
   );
 }
 
+/* ─── Step 4: Email Confirmation ─── */
+function StepEmailConfirmation({
+  country, warehouse, deliveryDate, cart, requestNumber,
+  onNewOrder,
+}: {
+  country: string;
+  warehouse: string;
+  deliveryDate: string;
+  cart: CartItem[];
+  requestNumber: string;
+  onNewOrder: () => void;
+}) {
+  const submittedDate = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const total = cart.reduce((sum, c) => sum + (c.part.price ?? 0) * c.qty, 0);
+  const hasUnpriced = cart.some((c) => c.part.price === null);
+
+  return (
+    <>
+      <div className="email-card">
+        <div className="email-banner">
+          <div className="email-banner-icon"><CheckCircle size={28} /></div>
+          <h2>Order Submitted</h2>
+          <p>Request #{requestNumber} has been sent for processing</p>
+        </div>
+
+        <div className="email-body">
+          <div className="email-subject">Subject:</div>
+          <div className="email-subject-value">
+            Acknowledgement of Request #{requestNumber} — Warehouse {warehouse}, {country}
+          </div>
+
+          <hr className="email-divider" />
+
+          <p className="email-text">Dear Evri,</p>
+
+          <p className="email-text">
+            We have successfully received your request <strong>#{requestNumber}</strong>, submitted on{" "}
+            <strong>{submittedDate}</strong>, for Warehouse <strong>{warehouse}</strong> in <strong>{country}</strong>.
+          </p>
+
+          <p className="email-text">Please find a summary of your order details below:</p>
+
+          <table className="email-summary-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th style={{ textAlign: "right" }}>Price</th>
+                <th style={{ textAlign: "right" }}>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cart.map((item) => (
+                <tr key={item.part.id}>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{item.part.name}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{item.part.sku}</div>
+                  </td>
+                  <td>{item.qty}</td>
+                  <td style={{ textAlign: "right" }}>{item.part.price !== null ? formatEuro(item.part.price) : <span style={{ color: "#9ca3af", fontSize: 12 }}>On request</span>}</td>
+                  <td style={{ textAlign: "right", fontWeight: 600, color: "#10b981" }}>{item.part.price !== null ? formatEuro(item.part.price * item.qty) : "—"}</td>
+                </tr>
+              ))}
+              <tr>
+                <td colSpan={3} style={{ fontWeight: 800, fontSize: 15, borderBottom: "none", paddingTop: 14 }}>Total</td>
+                <td style={{ textAlign: "right", fontWeight: 800, fontSize: 15, borderBottom: "none", paddingTop: 14 }}>{formatEuro(total)}{hasUnpriced ? "*" : ""}</td>
+              </tr>
+            </tbody>
+          </table>
+          {hasUnpriced && (
+            <div style={{ fontSize: 11, color: "#9ca3af", textAlign: "right" }}>* Some items require price confirmation</div>
+          )}
+
+          <p className="email-text" style={{ marginTop: 20 }}>
+            <strong>Request Link:</strong>{" "}
+            <a href="#" className="email-link">
+              View Request #{requestNumber} <ExternalLink size={14} />
+            </a>
+          </p>
+
+          <div className="email-disclaimer">
+            <strong>Disclaimer:</strong> We acknowledge receipt of your request. Items that are not currently in stock
+            will be processed, and we will revert with the expected delivery date within 5 working days.
+          </div>
+
+          <div className="email-signature">
+            <p className="email-sig-thanks">Thanks,</p>
+            <p className="email-sig-dept">Supply Chain Department</p>
+            <p className="email-sig-company">BLOQ.IT</p>
+          </div>
+        </div>
+      </div>
+
+      <button className="new-order-btn" onClick={onNewOrder}>
+        <RotateCcw size={16} /> Submit New Order
+      </button>
+    </>
+  );
+}
+
 /* ─── Main page ─── */
 export default function SparesPage() {
   const [step, setStep] = useState(1);
@@ -888,6 +1219,22 @@ export default function SparesPage() {
   const [warehouse, setWarehouse] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [requestNumber, setRequestNumber] = useState("");
+
+  const handleSubmit = () => {
+    const num = "REQ-" + Date.now().toString().slice(-6);
+    setRequestNumber(num);
+    setStep(4);
+  };
+
+  const handleNewOrder = () => {
+    setStep(1);
+    setCountry("");
+    setWarehouse("");
+    setDeliveryDate("");
+    setCart([]);
+    setRequestNumber("");
+  };
 
   return (
     <>
@@ -898,7 +1245,7 @@ export default function SparesPage() {
           <p>Select the parts you need and submit your order</p>
         </div>
 
-        <Stepper step={step} />
+        {step <= 3 && <Stepper step={step} />}
 
         {step === 1 && (
           <StepLocation
@@ -924,6 +1271,16 @@ export default function SparesPage() {
             onBack={() => setStep(2)}
             onEditLocation={() => setStep(1)}
             onEditParts={() => setStep(2)}
+            onSubmit={handleSubmit}
+          />
+        )}
+
+        {step === 4 && (
+          <StepEmailConfirmation
+            country={country} warehouse={warehouse}
+            deliveryDate={deliveryDate} cart={cart}
+            requestNumber={requestNumber}
+            onNewOrder={handleNewOrder}
           />
         )}
       </div>
