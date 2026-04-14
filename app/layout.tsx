@@ -6,8 +6,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FlowOps — System Design",
-  description: "AS-IS system design for Bloq.it field operations",
+  title: "Bloq.it — Claims & Spares",
+  description: "Inpost claims submission and spare parts ordering",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
