@@ -786,7 +786,7 @@ function StepConfirm({
 
   const handleSubmit = () => {
     const payload = {
-      partner: "Inpost",
+      partner: "Evri",
       country,
       warehouse,
       deliveryDate,
@@ -812,7 +812,7 @@ function StepConfirm({
           <span className="confirm-icon">🏢</span>
           <div>
             <div className="confirm-label">Partner</div>
-            <div className="confirm-value">Inpost</div>
+            <div className="confirm-value">Evri</div>
           </div>
         </div>
 
@@ -894,7 +894,7 @@ export default function SparesPage() {
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="spares-page">
         <div className="spares-header">
-          <h1>Order Parts - Inpost</h1>
+          <h1>Order Parts - Evri</h1>
           <p>Select the parts you need and submit your order</p>
         </div>
 

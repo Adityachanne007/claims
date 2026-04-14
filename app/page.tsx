@@ -10,7 +10,7 @@ export default function Home() {
       textAlign: "center",
     }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, margin: "0 0 8px" }}>
-        Bloq.it — Inpost
+        Bloq.it — Evri
       </h1>
       <p style={{ color: "#6b7280", fontSize: 15, margin: "0 0 36px" }}>
         Select a tool to get started

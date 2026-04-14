@@ -841,7 +841,7 @@ export default function ClaimPage() {
       <div className="claim-page">
         {/* Header */}
         <div className="claim-header">
-          <h1>Submit Claim for Inpost</h1>
+          <h1>Submit Claim for Evri</h1>
           <p>Please fill out the form below to submit a claim</p>
         </div>
 
@@ -885,7 +885,7 @@ export default function ClaimPage() {
                   </div>
                   <div className="email-detail-row">
                     <span className="email-detail-label">Client Name</span>
-                    <span className="email-detail-value">Inpost</span>
+                    <span className="email-detail-value">Evri</span>
                   </div>
                   <div className="email-detail-row">
                     <span className="email-detail-label">Country of Claim</span>
