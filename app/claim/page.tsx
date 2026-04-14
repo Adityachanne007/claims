@@ -19,6 +19,19 @@ interface UploadedFile {
   preview: string;
 }
 
+interface Issue {
+  id: number;
+  issueFaced: IssueType;
+  partsMissingFrom: MissingFrom;
+  damagedSerial: string;
+  missingSerial: string;
+  otherDescription: string;
+  issueMedia: UploadedFile[];
+  missingPhotos: UploadedFile[];
+  spareParts: Part[];
+  faultyParts: Part[];
+}
+
 /* ─── CSS ─── */
 const css = `
   :root {
@@ -272,6 +285,9 @@ const css = `
   .btn-secondary {
     background: #fff; color: #2563eb; border: 1px solid #bfdbfe;
   }
+  .btn-success {
+    background: #10b981; color: #fff; border: none;
+  }
   .actions {
     display: flex; justify-content: flex-end; gap: 12px; padding: 16px 0 0;
   }
@@ -282,6 +298,46 @@ const css = `
   .error-border {
     border-color: #fca5a5 !important;
     box-shadow: 0 0 0 1px #fca5a5 inset;
+  }
+
+  /* ─ issue block ─ */
+  .issue-block {
+    border-top: 3px solid var(--primary);
+    position: relative;
+  }
+  .issue-block:first-of-type {
+    border-top: none;
+  }
+  .issue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 0;
+  }
+  .issue-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff;
+    color: var(--primary);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .remove-issue-btn {
+    border: none;
+    background: none;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  .add-issue-row {
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--border);
   }
 
   /* ─ preview ─ */
@@ -383,6 +439,13 @@ const css = `
     justify-content: space-between;
     gap: 12px;
     margin-top: 24px;
+  }
+  .preview-issue-block {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
   }
 
   /* ─ email preview ─ */
@@ -566,6 +629,28 @@ const PARTS_CATALOG = [
 let nextId = 1;
 function uid() {
   return nextId++;
+}
+
+const ISSUE_LABELS: Record<string, string> = {
+  missing_parts: "Missing Parts",
+  damaged_locker_module: "Damaged Locker/Module",
+  faulty_component: "Faulty Component",
+  other: "Other",
+};
+
+function createEmptyIssue(): Issue {
+  return {
+    id: uid(),
+    issueFaced: "",
+    partsMissingFrom: "",
+    damagedSerial: "",
+    missingSerial: "",
+    otherDescription: "",
+    issueMedia: [],
+    missingPhotos: [],
+    spareParts: [],
+    faultyParts: [],
+  };
 }
 
 /* ─── Section component ─── */
@@ -770,109 +855,330 @@ function PartsManager({
   );
 }
 
+/* ─── IssueBlock — renders one issue with all conditional fields ─── */
+function IssueBlock({
+  issue,
+  index,
+  total,
+  onChange,
+  onRemove,
+  errors,
+  openSections,
+  onToggle,
+}: {
+  issue: Issue;
+  index: number;
+  total: number;
+  onChange: (updated: Issue) => void;
+  onRemove: () => void;
+  errors: Record<string, string>;
+  openSections: Record<string, boolean>;
+  onToggle: (key: string) => void;
+}) {
+  const prefix = `issue_${issue.id}`;
+  const num = index + 1;
+  const isMissing = issue.issueFaced === "missing_parts";
+  const isDamaged = issue.issueFaced === "damaged_locker_module";
+  const isFaulty = issue.issueFaced === "faulty_component";
+  const isOther = issue.issueFaced === "other";
+  const showMissingFollowups =
+    isMissing && (issue.partsMissingFrom === "module" || issue.partsMissingFrom === "main_locker");
+  const showIssueMedia = isDamaged || isFaulty || isOther;
+
+  const missingPhotosTitle =
+    issue.partsMissingFrom === "main_locker"
+      ? `Picture(s), if needed, of the missing parts' locker placement`
+      : `Picture(s), if needed, of the missing parts' module placement`;
+  const missingSerialTitle =
+    issue.partsMissingFrom === "main_locker"
+      ? `Serial number of the main locker missing the part(s)`
+      : `Serial number of the module missing the part(s)`;
+
+  const handleIssueChange = (val: IssueType) => {
+    onChange({
+      ...issue,
+      issueFaced: val,
+      partsMissingFrom: val === "missing_parts" ? issue.partsMissingFrom : "",
+    });
+  };
+
+  const update = (fields: Partial<Issue>) => {
+    onChange({ ...issue, ...fields });
+  };
+
+  /* sub-step counter within this issue */
+  let step = 0;
+
+  return (
+    <div className="issue-block">
+      {/* Issue header */}
+      <div className="issue-header">
+        <span className="issue-tag">Issue {num}</span>
+        {total > 1 && (
+          <button type="button" className="remove-issue-btn" onClick={onRemove}>
+            Remove issue
+          </button>
+        )}
+      </div>
+
+      {/* Issue type */}
+      <Section
+        title={`${num}.${++step}. Issue Faced`}
+        open={openSections[`${prefix}_type`] !== false}
+        onToggle={() => onToggle(`${prefix}_type`)}
+      >
+        <div className="field">
+          <label className="label">
+            Issue Faced <span className="req">*</span>
+          </label>
+          <select
+            className="claim-select"
+            value={issue.issueFaced}
+            onChange={(e) => handleIssueChange(e.target.value as IssueType)}
+            required
+          >
+            <option value="">Select issue</option>
+            <option value="missing_parts">Missing Parts</option>
+            <option value="damaged_locker_module">Damaged Locker/Module</option>
+            <option value="faulty_component">
+              Faulty Component (Components present but not functioning during installation)
+            </option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </Section>
+
+      {/* Missing → Where from */}
+      {isMissing && (
+        <Section
+          title={`${num}.${++step}. Parts are missing from`}
+          open={openSections[`${prefix}_from`] !== false}
+          onToggle={() => onToggle(`${prefix}_from`)}
+        >
+          <div className="field">
+            <label className="label">
+              Parts are missing from <span className="req">*</span>
+            </label>
+            <select
+              className="claim-select"
+              value={issue.partsMissingFrom}
+              onChange={(e) =>
+                update({ partsMissingFrom: e.target.value as MissingFrom })
+              }
+            >
+              <option value="">Select where parts are missing from</option>
+              <option value="module">A module</option>
+              <option value="main_locker">The main locker</option>
+            </select>
+          </div>
+        </Section>
+      )}
+
+      {/* Damaged → Serial */}
+      {isDamaged && (
+        <Section
+          title={`${num}.${++step}. Serial number of the damaged locker/module`}
+          open={openSections[`${prefix}_dserial`] !== false}
+          onToggle={() => onToggle(`${prefix}_dserial`)}
+        >
+          <div className="field">
+            <label className="label">
+              Serial number <span className="req">*</span>
+            </label>
+            <div className="input-row">
+              <input
+                className={`claim-input wide-input grow ${errors[`${prefix}_dserial`] ? "error-border" : ""}`}
+                type="text"
+                placeholder="EVRxxxx"
+                value={issue.damagedSerial}
+                onChange={(e) => update({ damagedSerial: e.target.value })}
+              />
+              <button className="icon-btn" type="button" title="Scan">⌘</button>
+            </div>
+            {errors[`${prefix}_dserial`] && (
+              <div className="error-text">{errors[`${prefix}_dserial`]}</div>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Faulty → Parts */}
+      {isFaulty && (
+        <Section
+          title={`${num}.${++step}. Spare parts to request`}
+          open={openSections[`${prefix}_fparts`] !== false}
+          onToggle={() => onToggle(`${prefix}_fparts`)}
+        >
+          <PartsManager
+            parts={issue.faultyParts}
+            onChange={(p) => update({ faultyParts: p })}
+            error={errors[`${prefix}_fparts`]}
+          />
+        </Section>
+      )}
+
+      {/* Other → Description */}
+      {isOther && (
+        <Section
+          title={`${num}.${++step}. Describe the issue`}
+          open={openSections[`${prefix}_desc`] !== false}
+          onToggle={() => onToggle(`${prefix}_desc`)}
+        >
+          <div className="field">
+            <label className="label">
+              Description <span className="req">*</span>
+            </label>
+            <textarea
+              className={`claim-textarea ${errors[`${prefix}_desc`] ? "error-border" : ""}`}
+              placeholder="Please describe the issue in detail"
+              value={issue.otherDescription}
+              onChange={(e) => update({ otherDescription: e.target.value })}
+            />
+            {errors[`${prefix}_desc`] && (
+              <div className="error-text">{errors[`${prefix}_desc`]}</div>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* Issue Media */}
+      {showIssueMedia && (
+        <Section
+          title={`${num}.${++step}. Picture/Video of the issue`}
+          open={openSections[`${prefix}_media`] !== false}
+          onToggle={() => onToggle(`${prefix}_media`)}
+        >
+          <FileUploader
+            files={issue.issueMedia}
+            onChange={(f) => update({ issueMedia: f })}
+            required
+            error={errors[`${prefix}_media`]}
+          />
+        </Section>
+      )}
+
+      {/* Missing followups */}
+      {showMissingFollowups && (
+        <>
+          <Section
+            title={`${num}.${++step}. ${missingPhotosTitle}`}
+            open={openSections[`${prefix}_mphotos`] !== false}
+            onToggle={() => onToggle(`${prefix}_mphotos`)}
+          >
+            <FileUploader
+              files={issue.missingPhotos}
+              onChange={(f) => update({ missingPhotos: f })}
+              label="Photos"
+            />
+          </Section>
+
+          <Section
+            title={`${num}.${++step}. ${missingSerialTitle}`}
+            open={openSections[`${prefix}_mserial`] !== false}
+            onToggle={() => onToggle(`${prefix}_mserial`)}
+          >
+            <div className="field">
+              <label className="label">
+                Serial number <span className="req">*</span>
+              </label>
+              <div className="input-row">
+                <input
+                  className={`claim-input wide-input grow ${errors[`${prefix}_mserial`] ? "error-border" : ""}`}
+                  type="text"
+                  placeholder="EVRxxxx"
+                  value={issue.missingSerial}
+                  onChange={(e) => update({ missingSerial: e.target.value })}
+                />
+                <button className="icon-btn" type="button" title="Scan">⌘</button>
+              </div>
+              {errors[`${prefix}_mserial`] && (
+                <div className="error-text">{errors[`${prefix}_mserial`]}</div>
+              )}
+            </div>
+          </Section>
+
+          <Section
+            title={`${num}.${++step}. Spare parts to request`}
+            open={openSections[`${prefix}_sparts`] !== false}
+            onToggle={() => onToggle(`${prefix}_sparts`)}
+          >
+            <PartsManager
+              parts={issue.spareParts}
+              onChange={(p) => update({ spareParts: p })}
+              error={errors[`${prefix}_sparts`]}
+            />
+          </Section>
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main page ─── */
 export default function ClaimPage() {
-  /* form state */
   const [country, setCountry] = useState("");
   const [warehouse, setWarehouse] = useState("");
-  const [issueFaced, setIssueFaced] = useState<IssueType>("");
-  const [partsMissingFrom, setPartsMissingFrom] = useState<MissingFrom>("");
+  const [issues, setIssues] = useState<Issue[]>([createEmptyIssue()]);
 
-  const [damagedSerial, setDamagedSerial] = useState("");
-  const [missingSerial, setMissingSerial] = useState("");
-  const [otherDescription, setOtherDescription] = useState("");
-
-  const [issueMedia, setIssueMedia] = useState<UploadedFile[]>([]);
-  const [missingPhotos, setMissingPhotos] = useState<UploadedFile[]>([]);
-
-  const [spareParts, setSpareParts] = useState<Part[]>([]);
-  const [faultyParts, setFaultyParts] = useState<Part[]>([]);
-
-  /* accordion open state */
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     country: true,
     details: true,
-    issue: true,
-    missingFrom: true,
-    damagedSerial: true,
-    faultyParts: true,
-    otherDesc: true,
-    issueMedia: true,
-    missingPhotos: true,
-    missingSerial: true,
-    spareParts: true,
   });
 
-  /* errors & submitted & confirmed */
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [claimNumber] = useState(() => Math.floor(Math.random() * 900) + 100);
 
   const toggle = useCallback((key: string) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    setOpenSections((prev) => ({ ...prev, [key]: prev[key] === false ? true : false }));
   }, []);
 
-  /* derived visibility */
-  const isMissing = issueFaced === "missing_parts";
-  const isDamaged = issueFaced === "damaged_locker_module";
-  const isFaulty = issueFaced === "faulty_component";
-  const isOther = issueFaced === "other";
-  const showMissingFollowups =
-    isMissing && (partsMissingFrom === "module" || partsMissingFrom === "main_locker");
-
-  const showIssueMedia = isDamaged || isFaulty || isOther;
-
-  /* dynamic titles for missing parts flow */
-  const missingPhotosTitle =
-    partsMissingFrom === "main_locker"
-      ? "4. Picture(s), if needed, of the missing parts' locker placement"
-      : "4. Picture(s), if needed, of the missing parts' module placement";
-  const missingSerialTitle =
-    partsMissingFrom === "main_locker"
-      ? "5. Serial number of the main locker missing the part(s)"
-      : "5. Serial number of the module missing the part(s)";
-
-  /* issue media section number */
-  const issueMediaNumber = isDamaged ? 5 : isFaulty || isOther ? 5 : 5;
-
-  /* handle issue change */
-  const handleIssueChange = (val: IssueType) => {
-    setIssueFaced(val);
-    if (val !== "missing_parts") {
-      setPartsMissingFrom("");
-    }
-    setErrors({});
+  const updateIssue = (id: number, updated: Issue) => {
+    setIssues((prev) => prev.map((iss) => (iss.id === id ? updated : iss)));
   };
 
-  /* validate & submit */
+  const removeIssue = (id: number) => {
+    setIssues((prev) => prev.filter((iss) => iss.id !== id));
+  };
+
+  const addIssue = () => {
+    setIssues((prev) => [...prev, createEmptyIssue()]);
+  };
+
+  /* validate */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
 
-    if (isDamaged && !damagedSerial.trim()) {
-      errs.damagedSerial = "Serial number is required";
-    }
+    issues.forEach((iss) => {
+      const prefix = `issue_${iss.id}`;
+      const isMissing = iss.issueFaced === "missing_parts";
+      const isDamaged = iss.issueFaced === "damaged_locker_module";
+      const isFaulty = iss.issueFaced === "faulty_component";
+      const isOther = iss.issueFaced === "other";
+      const showMissing =
+        isMissing && (iss.partsMissingFrom === "module" || iss.partsMissingFrom === "main_locker");
 
-    if (showMissingFollowups && !missingSerial.trim()) {
-      errs.missingSerial = "Serial number is required";
-    }
-
-    if (showMissingFollowups && spareParts.length === 0) {
-      errs.spareParts = "Add at least one part";
-    }
-
-    if (isFaulty && faultyParts.length === 0) {
-      errs.faultyParts = "Add at least one part";
-    }
-
-    if (isOther && !otherDescription.trim()) {
-      errs.otherDescription = "Description is required";
-    }
-
-    if (showIssueMedia && issueMedia.length === 0) {
-      errs.issueMedia = "At least one photo/video is required";
-    }
+      if (isDamaged && !iss.damagedSerial.trim()) {
+        errs[`${prefix}_dserial`] = "Serial number is required";
+      }
+      if (showMissing && !iss.missingSerial.trim()) {
+        errs[`${prefix}_mserial`] = "Serial number is required";
+      }
+      if (showMissing && iss.spareParts.length === 0) {
+        errs[`${prefix}_sparts`] = "Add at least one part";
+      }
+      if (isFaulty && iss.faultyParts.length === 0) {
+        errs[`${prefix}_fparts`] = "Add at least one part";
+      }
+      if (isOther && !iss.otherDescription.trim()) {
+        errs[`${prefix}_desc`] = "Description is required";
+      }
+      if ((isDamaged || isFaulty || isOther) && iss.issueMedia.length === 0) {
+        errs[`${prefix}_media`] = "At least one photo/video is required";
+      }
+    });
 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -881,35 +1187,31 @@ export default function ClaimPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  /* reset */
   const handleReset = () => {
     setCountry("");
     setWarehouse("");
-    setIssueFaced("");
-    setPartsMissingFrom("");
-    setDamagedSerial("");
-    setMissingSerial("");
-    setOtherDescription("");
-    setIssueMedia([]);
-    setMissingPhotos([]);
-    setSpareParts([]);
-    setFaultyParts([]);
+    setIssues([createEmptyIssue()]);
     setErrors({});
     setSubmitted(false);
     setConfirmed(false);
   };
 
+  /* computed totals for preview */
+  const allParts = issues.flatMap((iss) => [...iss.spareParts, ...iss.faultyParts]);
+  const totalMedia = issues.reduce(
+    (s, iss) => s + iss.issueMedia.length + iss.missingPhotos.length,
+    0
+  );
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="claim-page">
-        {/* Header */}
         <div className="claim-header">
           <h1>Submit Claim for Evri</h1>
           <p>Please fill out the form below to submit a claim</p>
         </div>
 
-        {/* Step indicator */}
         {!confirmed && (
           <div className="step-row">
             <div className="step-pill">
@@ -919,105 +1221,118 @@ export default function ClaimPage() {
           </div>
         )}
 
-        {/* Email confirmation */}
-        {confirmed && (() => {
-          const today = new Date();
-          const dateStr = today.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-          const issueLabel =
-            issueFaced === "missing_parts" ? "Missing Parts" :
-            issueFaced === "damaged_locker_module" ? "Damaged Locker/Module" :
-            issueFaced === "faulty_component" ? "Faulty Component" :
-            issueFaced === "other" ? "Other" : "";
-          const randomHash = Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("");
-          return (
-            <div className="email-card">
-              <div className="email-banner">
-                <div className="email-banner-icon">✓</div>
-                <h2>Claim Submitted Successfully</h2>
-                <p>Your claim has been registered and is being reviewed</p>
-              </div>
-              <div className="email-body">
-                <div className="email-greeting">Dear Client,</div>
-                <div className="email-text">
-                  We acknowledge receipt of your claim and confirm that it has been successfully registered in our system with the following details:
+        {/* ═══ Email confirmation ═══ */}
+        {confirmed &&
+          (() => {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            });
+            const randomHash = Array.from(
+              { length: 64 },
+              () => "0123456789abcdef"[Math.floor(Math.random() * 16)]
+            ).join("");
+            return (
+              <div className="email-card">
+                <div className="email-banner">
+                  <div className="email-banner-icon">✓</div>
+                  <h2>Claim Submitted Successfully</h2>
+                  <p>
+                    Your claim has been registered and is being reviewed
+                  </p>
                 </div>
+                <div className="email-body">
+                  <div className="email-greeting">Dear Client,</div>
+                  <div className="email-text">
+                    We acknowledge receipt of your claim and confirm that it has
+                    been successfully registered in our system with the following
+                    details:
+                  </div>
 
-                <div className="email-details">
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Claim Number</span>
-                    <span className="email-detail-value">{claimNumber}</span>
-                  </div>
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Client Name</span>
-                    <span className="email-detail-value">Evri</span>
-                  </div>
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Country of Claim</span>
-                    <span className="email-detail-value">{country}</span>
-                  </div>
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">3PL Warehouse</span>
-                    <span className="email-detail-value">{warehouse}</span>
-                  </div>
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Issue Type</span>
-                    <span className="email-detail-value">{issueLabel}</span>
-                  </div>
-                  {(isDamaged && damagedSerial) && (
+                  <div className="email-details">
                     <div className="email-detail-row">
-                      <span className="email-detail-label">Serial Number</span>
-                      <span className="email-detail-value">{damagedSerial}</span>
+                      <span className="email-detail-label">Claim Number</span>
+                      <span className="email-detail-value">{claimNumber}</span>
                     </div>
-                  )}
-                  {(showMissingFollowups && missingSerial) && (
                     <div className="email-detail-row">
-                      <span className="email-detail-label">Serial Number</span>
-                      <span className="email-detail-value">{missingSerial}</span>
+                      <span className="email-detail-label">Client Name</span>
+                      <span className="email-detail-value">Evri</span>
                     </div>
-                  )}
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Submission Date</span>
-                    <span className="email-detail-value">{dateStr}</span>
-                  </div>
-                  <div className="email-detail-row">
-                    <span className="email-detail-label">Attachments</span>
-                    <span className="email-detail-value">{issueMedia.length + missingPhotos.length} file(s)</span>
-                  </div>
-                  {(spareParts.length > 0 || faultyParts.length > 0) && (
                     <div className="email-detail-row">
-                      <span className="email-detail-label">Parts Requested</span>
-                      <span className="email-detail-value">{spareParts.length + faultyParts.length} part(s)</span>
+                      <span className="email-detail-label">Country of Claim</span>
+                      <span className="email-detail-value">{country}</span>
                     </div>
-                  )}
-                </div>
+                    <div className="email-detail-row">
+                      <span className="email-detail-label">3PL Warehouse</span>
+                      <span className="email-detail-value">{warehouse}</span>
+                    </div>
+                    <div className="email-detail-row">
+                      <span className="email-detail-label">Issues Reported</span>
+                      <span className="email-detail-value">{issues.length}</span>
+                    </div>
+                    <div className="email-detail-row">
+                      <span className="email-detail-label">Submission Date</span>
+                      <span className="email-detail-value">{dateStr}</span>
+                    </div>
+                    <div className="email-detail-row">
+                      <span className="email-detail-label">Attachments</span>
+                      <span className="email-detail-value">
+                        {totalMedia} file(s)
+                      </span>
+                    </div>
+                    {allParts.length > 0 && (
+                      <div className="email-detail-row">
+                        <span className="email-detail-label">Parts Requested</span>
+                        <span className="email-detail-value">
+                          {allParts.length} part(s)
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="email-link-box">
-                  <div className="email-link-label">Claim Document</div>
-                  <div className="email-link">
-                    https://reports.dev.bloqit.io/deployment/claims/review/{randomHash}
+                  <div className="email-link-box">
+                    <div className="email-link-label">Claim Document</div>
+                    <div className="email-link">
+                      https://reports.dev.bloqit.io/deployment/claims/review/
+                      {randomHash}
+                    </div>
+                  </div>
+
+                  <div className="email-text">
+                    Thank you for bringing this matter to our attention. Our team
+                    is currently reviewing the information provided regarding the
+                    reported missing, damaged, or non-functional parts. We will
+                    keep you informed of any updates and next steps as soon as
+                    possible. Should you have any additional information or
+                    documentation that may assist in our assessment, please do not
+                    hesitate to share it with us. We appreciate your cooperation
+                    and patience.
+                  </div>
+
+                  <div className="email-signature">
+                    Kind regards,
+                    <br />
+                    <strong>Quality Department</strong>
+                    <br />
+                    BLOQ.IT
                   </div>
                 </div>
-
-                <div className="email-text">
-                  Thank you for bringing this matter to our attention. Our team is currently reviewing the information provided regarding the reported missing, damaged, or non-functional parts. We will keep you informed of any updates and next steps as soon as possible. Should you have any additional information or documentation that may assist in our assessment, please do not hesitate to share it with us. We appreciate your cooperation and patience.
-                </div>
-
-                <div className="email-signature">
-                  Kind regards,<br />
-                  <strong>Quality Department</strong><br />
-                  BLOQ.IT
+                <div className="email-actions">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={handleReset}
+                  >
+                    Submit New Claim
+                  </button>
                 </div>
               </div>
-              <div className="email-actions">
-                <button className="btn btn-secondary" type="button" onClick={handleReset}>
-                  Submit New Claim
-                </button>
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
-        {/* Preview */}
+        {/* ═══ Preview ═══ */}
         {submitted && !confirmed && (
           <div className="preview-card">
             <div className="preview-title">
@@ -1025,7 +1340,6 @@ export default function ClaimPage() {
               <span className="preview-badge">✓ Ready to submit</span>
             </div>
 
-            {/* Location */}
             <div className="preview-section">
               <div className="preview-section-title">Location</div>
               <div className="preview-row">
@@ -1038,111 +1352,97 @@ export default function ClaimPage() {
               </div>
             </div>
 
-            {/* Issue */}
-            <div className="preview-section">
-              <div className="preview-section-title">Issue Details</div>
-              <div className="preview-row">
-                <span className="preview-label">Issue Faced</span>
-                <span className="preview-value">
-                  {issueFaced === "missing_parts" && "Missing Parts"}
-                  {issueFaced === "damaged_locker_module" && "Damaged Locker/Module"}
-                  {issueFaced === "faulty_component" && "Faulty Component"}
-                  {issueFaced === "other" && "Other"}
-                </span>
-              </div>
+            {issues.map((iss, idx) => {
+              const isMissing = iss.issueFaced === "missing_parts";
+              const isDamaged = iss.issueFaced === "damaged_locker_module";
+              const isOther = iss.issueFaced === "other";
+              const showMissing =
+                isMissing &&
+                (iss.partsMissingFrom === "module" ||
+                  iss.partsMissingFrom === "main_locker");
+              const issueParts = [...iss.spareParts, ...iss.faultyParts];
 
-              {isMissing && partsMissingFrom && (
-                <div className="preview-row">
-                  <span className="preview-label">Parts missing from</span>
-                  <span className="preview-value">
-                    {partsMissingFrom === "module" ? "A module" : "The main locker"}
-                  </span>
-                </div>
-              )}
-
-              {isDamaged && damagedSerial && (
-                <div className="preview-row">
-                  <span className="preview-label">Serial number</span>
-                  <span className="preview-value">{damagedSerial}</span>
-                </div>
-              )}
-
-              {showMissingFollowups && missingSerial && (
-                <div className="preview-row">
-                  <span className="preview-label">Serial number</span>
-                  <span className="preview-value">{missingSerial}</span>
-                </div>
-              )}
-
-              {isOther && otherDescription && (
-                <div className="preview-row">
-                  <span className="preview-label">Description</span>
-                  <span className="preview-value">{otherDescription}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Photos */}
-            {(issueMedia.length > 0 || missingPhotos.length > 0) && (
-              <div className="preview-section">
-                <div className="preview-section-title">Attachments</div>
-                {issueMedia.length > 0 && (
-                  <>
-                    <div className="preview-label" style={{ marginBottom: 6 }}>
-                      Issue photos/videos ({issueMedia.length})
-                    </div>
-                    <div className="preview-thumbs">
-                      {issueMedia.map((f) => (
-                        <div key={f.id} className="preview-thumb">
-                          {f.preview ? <img src={f.preview} alt="" /> : f.file.name.slice(0, 10)}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {missingPhotos.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="preview-label" style={{ marginBottom: 6 }}>
-                      Placement photos ({missingPhotos.length})
-                    </div>
-                    <div className="preview-thumbs">
-                      {missingPhotos.map((f) => (
-                        <div key={f.id} className="preview-thumb">
-                          {f.preview ? <img src={f.preview} alt="" /> : f.file.name.slice(0, 10)}
-                        </div>
-                      ))}
-                    </div>
+              return (
+                <div key={iss.id} className="preview-section">
+                  <div className="preview-section-title">
+                    Issue {idx + 1} — {ISSUE_LABELS[iss.issueFaced] || "—"}
                   </div>
-                )}
-              </div>
-            )}
 
-            {/* Spare parts */}
-            {(spareParts.length > 0 || faultyParts.length > 0) && (
-              <div className="preview-section">
-                <div className="preview-section-title">Spare Parts Requested</div>
-                <table className="preview-parts-table">
-                  <thead>
-                    <tr>
-                      <th>Part number</th>
-                      <th>Description</th>
-                      <th>Qty</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...spareParts, ...faultyParts].map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.partNumber || "—"}</td>
-                        <td>{p.description || "—"}</td>
-                        <td>{p.quantity || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  {isMissing && iss.partsMissingFrom && (
+                    <div className="preview-row">
+                      <span className="preview-label">Parts missing from</span>
+                      <span className="preview-value">
+                        {iss.partsMissingFrom === "module"
+                          ? "A module"
+                          : "The main locker"}
+                      </span>
+                    </div>
+                  )}
 
-            {/* Actions */}
+                  {isDamaged && iss.damagedSerial && (
+                    <div className="preview-row">
+                      <span className="preview-label">Serial number</span>
+                      <span className="preview-value">{iss.damagedSerial}</span>
+                    </div>
+                  )}
+
+                  {showMissing && iss.missingSerial && (
+                    <div className="preview-row">
+                      <span className="preview-label">Serial number</span>
+                      <span className="preview-value">{iss.missingSerial}</span>
+                    </div>
+                  )}
+
+                  {isOther && iss.otherDescription && (
+                    <div className="preview-row">
+                      <span className="preview-label">Description</span>
+                      <span className="preview-value">{iss.otherDescription}</span>
+                    </div>
+                  )}
+
+                  {(iss.issueMedia.length > 0 || iss.missingPhotos.length > 0) && (
+                    <>
+                      <div className="preview-label" style={{ marginTop: 8, marginBottom: 6 }}>
+                        Attachments ({iss.issueMedia.length + iss.missingPhotos.length})
+                      </div>
+                      <div className="preview-thumbs">
+                        {[...iss.issueMedia, ...iss.missingPhotos].map((f) => (
+                          <div key={f.id} className="preview-thumb">
+                            {f.preview ? (
+                              <img src={f.preview} alt="" />
+                            ) : (
+                              f.file.name.slice(0, 10)
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {issueParts.length > 0 && (
+                    <table className="preview-parts-table" style={{ marginTop: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Part number</th>
+                          <th>Description</th>
+                          <th>Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {issueParts.map((p) => (
+                          <tr key={p.id}>
+                            <td>{p.partNumber || "—"}</td>
+                            <td>{p.description || "—"}</td>
+                            <td>{p.quantity || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })}
+
             <div className="preview-actions">
               <button
                 className="btn btn-secondary"
@@ -1165,12 +1465,16 @@ export default function ClaimPage() {
           </div>
         )}
 
-        {/* Form */}
-        <form className="accordion" onSubmit={handleSubmit} style={{ display: (submitted || confirmed) ? "none" : undefined }}>
+        {/* ═══ Form ═══ */}
+        <form
+          className="accordion"
+          onSubmit={handleSubmit}
+          style={{ display: submitted || confirmed ? "none" : undefined }}
+        >
           {/* 1. Country */}
           <Section
             title="1. Country of Claim"
-            open={openSections.country}
+            open={openSections.country !== false}
             onToggle={() => toggle("country")}
           >
             <div className="field">
@@ -1192,7 +1496,7 @@ export default function ClaimPage() {
           {/* 2. Claim Details */}
           <Section
             title="2. Claim Details"
-            open={openSections.details}
+            open={openSections.details !== false}
             onToggle={() => toggle("details")}
           >
             <div className="field">
@@ -1211,205 +1515,27 @@ export default function ClaimPage() {
             </div>
           </Section>
 
-          {/* 3. Issue Faced */}
-          <Section
-            title="3. Issue Faced"
-            open={openSections.issue}
-            onToggle={() => toggle("issue")}
-          >
-            <div className="field">
-              <label className="label">
-                Issue Faced <span className="req">*</span>
-              </label>
-              <select
-                className="claim-select"
-                value={issueFaced}
-                onChange={(e) => handleIssueChange(e.target.value as IssueType)}
-                required
-              >
-                <option value="">Select issue</option>
-                <option value="missing_parts">Missing Parts</option>
-                <option value="damaged_locker_module">
-                  Damaged Locker/Module
-                </option>
-                <option value="faulty_component">
-                  Faulty Component (Components present but not functioning during
-                  installation)
-                </option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </Section>
+          {/* Issues */}
+          {issues.map((iss, idx) => (
+            <IssueBlock
+              key={iss.id}
+              issue={iss}
+              index={idx}
+              total={issues.length}
+              onChange={(updated) => updateIssue(iss.id, updated)}
+              onRemove={() => removeIssue(iss.id)}
+              errors={errors}
+              openSections={openSections}
+              onToggle={toggle}
+            />
+          ))}
 
-          {/* 4. Missing Parts → Where from */}
-          {isMissing && (
-            <Section
-              title="4. Parts are missing from"
-              open={openSections.missingFrom}
-              onToggle={() => toggle("missingFrom")}
-            >
-              <div className="field">
-                <label className="label">
-                  Parts are missing from <span className="req">*</span>
-                </label>
-                <select
-                  className="claim-select"
-                  value={partsMissingFrom}
-                  onChange={(e) =>
-                    setPartsMissingFrom(e.target.value as MissingFrom)
-                  }
-                >
-                  <option value="">Select where parts are missing from</option>
-                  <option value="module">A module</option>
-                  <option value="main_locker">The main locker</option>
-                </select>
-              </div>
-            </Section>
-          )}
-
-          {/* 4. Damaged → Serial number */}
-          {isDamaged && (
-            <Section
-              title="4. Serial number of the damaged locker/module"
-              open={openSections.damagedSerial}
-              onToggle={() => toggle("damagedSerial")}
-            >
-              <div className="field">
-                <label className="label">
-                  Serial number <span className="req">*</span>
-                </label>
-                <div className="input-row">
-                  <input
-                    className={`claim-input wide-input grow ${errors.damagedSerial ? "error-border" : ""}`}
-                    type="text"
-                    placeholder="EVRxxxx"
-                    value={damagedSerial}
-                    onChange={(e) => setDamagedSerial(e.target.value)}
-                  />
-                  <button className="icon-btn" type="button" title="Scan">
-                    ⌘
-                  </button>
-                </div>
-                {errors.damagedSerial && (
-                  <div className="error-text">{errors.damagedSerial}</div>
-                )}
-              </div>
-            </Section>
-          )}
-
-          {/* 4. Faulty → Parts to request */}
-          {isFaulty && (
-            <Section
-              title="4. Spare parts to request"
-              open={openSections.faultyParts}
-              onToggle={() => toggle("faultyParts")}
-            >
-              <PartsManager
-                parts={faultyParts}
-                onChange={setFaultyParts}
-                error={errors.faultyParts}
-              />
-            </Section>
-          )}
-
-          {/* 4. Other → Description */}
-          {isOther && (
-            <Section
-              title="4. Describe the issue"
-              open={openSections.otherDesc}
-              onToggle={() => toggle("otherDesc")}
-            >
-              <div className="field">
-                <label className="label">
-                  Description <span className="req">*</span>
-                </label>
-                <textarea
-                  className={`claim-textarea ${errors.otherDescription ? "error-border" : ""}`}
-                  placeholder="Please describe the issue in detail"
-                  value={otherDescription}
-                  onChange={(e) => setOtherDescription(e.target.value)}
-                />
-                {errors.otherDescription && (
-                  <div className="error-text">{errors.otherDescription}</div>
-                )}
-              </div>
-            </Section>
-          )}
-
-          {/* 5. Issue Media (for damaged, faulty, other) */}
-          {showIssueMedia && (
-            <Section
-              title={`${issueMediaNumber}. Picture/Video of the issue`}
-              open={openSections.issueMedia}
-              onToggle={() => toggle("issueMedia")}
-            >
-              <FileUploader
-                files={issueMedia}
-                onChange={setIssueMedia}
-                required
-                error={errors.issueMedia}
-              />
-            </Section>
-          )}
-
-          {/* Missing parts follow-ups */}
-          {showMissingFollowups && (
-            <>
-              {/* 4. Photos of placement */}
-              <Section
-                title={missingPhotosTitle}
-                open={openSections.missingPhotos}
-                onToggle={() => toggle("missingPhotos")}
-              >
-                <FileUploader
-                  files={missingPhotos}
-                  onChange={setMissingPhotos}
-                  label="Photos"
-                />
-              </Section>
-
-              {/* 5. Serial number */}
-              <Section
-                title={missingSerialTitle}
-                open={openSections.missingSerial}
-                onToggle={() => toggle("missingSerial")}
-              >
-                <div className="field">
-                  <label className="label">
-                    Serial number <span className="req">*</span>
-                  </label>
-                  <div className="input-row">
-                    <input
-                      className={`claim-input wide-input grow ${errors.missingSerial ? "error-border" : ""}`}
-                      type="text"
-                      placeholder="EVRxxxx"
-                      value={missingSerial}
-                      onChange={(e) => setMissingSerial(e.target.value)}
-                    />
-                    <button className="icon-btn" type="button" title="Scan">
-                      ⌘
-                    </button>
-                  </div>
-                  {errors.missingSerial && (
-                    <div className="error-text">{errors.missingSerial}</div>
-                  )}
-                </div>
-              </Section>
-
-              {/* 6. Spare parts */}
-              <Section
-                title="6. Spare parts to request"
-                open={openSections.spareParts}
-                onToggle={() => toggle("spareParts")}
-              >
-                <PartsManager
-                  parts={spareParts}
-                  onChange={setSpareParts}
-                  error={errors.spareParts}
-                />
-              </Section>
-            </>
-          )}
+          {/* Add another issue */}
+          <div className="add-issue-row">
+            <button className="btn btn-success" type="button" onClick={addIssue}>
+              ＋ Add another issue
+            </button>
+          </div>
 
           {/* Actions */}
           <div style={{ padding: "0 20px 20px" }}>
