@@ -1218,7 +1218,7 @@ export default function ClaimPage() {
                   <input
                     className={`claim-input wide-input grow ${errors.damagedSerial ? "error-border" : ""}`}
                     type="text"
-                    placeholder="INPxxxx"
+                    placeholder="EVRxxxx"
                     value={damagedSerial}
                     onChange={(e) => setDamagedSerial(e.target.value)}
                   />
@@ -1318,7 +1318,7 @@ export default function ClaimPage() {
                     <input
                       className={`claim-input wide-input grow ${errors.missingSerial ? "error-border" : ""}`}
                       type="text"
-                      placeholder="INPxxxx"
+                      placeholder="EVRxxxx"
                       value={missingSerial}
                       onChange={(e) => setMissingSerial(e.target.value)}
                     />
