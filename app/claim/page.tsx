@@ -240,7 +240,7 @@ const css = `
   }
   .part-grid {
     display: grid;
-    grid-template-columns: 1.2fr 2fr 100px auto;
+    grid-template-columns: 2fr 1.5fr 80px auto;
     gap: 10px;
     align-items: end;
   }
@@ -501,6 +501,67 @@ const css = `
   }
 `;
 
+/* ─── parts catalog ─── */
+const PARTS_CATALOG = [
+  "metal-footpanel-front-NEXT-v2.0.1",
+  "metal-footpanel-back-NEXT-v2.0.1",
+  "screw-column_bottom_fix-M5x110",
+  "screw-column_top_fix-M5x25",
+  "screw-hex-socket-cap-M5x60-zinc",
+  "screw-hex-socket-ISO4762-zinc-M5x16",
+  "Nut-M5-nyloc-zinc",
+  "washer-plain-ISO7089-steel-M5",
+  "screw-cross-cheese-ISO7045-A2-M4x10",
+  "acc-washer-M4-ECU_earth",
+  "acc-top-lock-cover-plastic_flat_key",
+  "acc-grommet-conical-M25",
+  "acc-gasket-trelleborg-T-GD36",
+  "metal-front-skirt-assembly-NEXT-STD-concrete-base-v2.1.2",
+  "metal-rear-skirt-assembly-NEXT-STD-Concrete-Base-v2.1.2",
+  "metal-side-skirt-NEXT-standard-concrete-base-v2.1.2",
+  "metal-anchor-plate-NEXT-STD-concrete-base-v2.1.3",
+  "metal-anchor-plate-cover-NEXT-STD-concrete-base-v2.1.2",
+  "acc-leveling-feet-M20X100-SS-stem-Plastic-foot",
+  "acc-anchor_MTP-A4_m12x110",
+  "screw-hex-flange-serrated-DIN6921-Stainless-M10X35",
+  "screw-cross-cheese-ISO7045-A2-M4x08",
+  "washer-plain-ISO7089-stainless-M12",
+  "screw-socket-ISO4762-stainless-M8x25",
+  "washer-plain-ISO7089-stainless-M8",
+  "acc-foot-rubber-m8x80_inox-varisom",
+  "metal-kit-next-std-halo-v2.1.0",
+  "cable-assy-led_strip_VTAC_4.2W_3000K",
+  "screw-contersunk-philips-ISO7046-A2-M5x12",
+  "screw-cheese-phillips-M5x10-zinc",
+  "metal-fischer-FIS-VS-PLUS-300T-563278",
+  "metal-fischer-FIS-H-20x130-46703",
+  "metal-fischer-FIS-A-M12x140-R-a2",
+  "metal-fischer-FIS-A-M12x200-R-a2",
+  "metal-fischer-FIS-H-18x130-200-K-45707",
+  "acc-chem-anchor-epoxy-WIT-PE-1000",
+  "acc-Asphalt-Tie-Bolt-Ø16x155mm-M16-Steel",
+  "acc-Thread-reducer-M16-M12-Steel",
+  "screw-hex-DIN933-stainless-M12X30",
+  "washer-large-ISO7093-stainless-M12",
+  "next-std-single-camera-left-1.0.1",
+  "next-std-single-camera-right-1.0.1",
+  "cable-RJ45-FTP-5m-KR-CU_to_KR-CU",
+  "cable-RJ45-FTP-2m-ECU_to_kerong",
+  "cable-RJ45-FTP-3m-KR-CU_to_KR-CU",
+  "acc-top-lock-flat_key_cod.4-KeyOnly",
+  "cable-Non-Contiguous-intrusion-sensor-2m_Rev0",
+  "cable-Non-Contiguous-PE-2m_Rev0",
+  "cable-RJ45-FTP-2m",
+  "cable-Non-Contiguous-intrusion-sensor-5m_Rev0",
+  "cable-Non-Contiguous-PE-5m_Rev0",
+  "cable-RJ45-FTP-5m",
+  "cable-Non-Contiguous-intrusion-sensor-10m_Rev0",
+  "cable-Non-Contiguous-PE-10m_Rev0",
+  "cable-RJ45-FTP-10m",
+  "metal-AnchoringSupportAssembly_STD_C-v.0.4",
+  "metal-AnchoringSupportAssembly_STD_NoCover_C-v.0.4",
+];
+
 /* ─── helpers ─── */
 let nextId = 1;
 function uid() {
@@ -653,15 +714,18 @@ function PartsManager({
             <div className="part-grid">
               <div>
                 <label className="small-label">Part number</label>
-                <input
+                <select
                   className="claim-input"
-                  type="text"
-                  placeholder="e.g. P-1001"
                   value={part.partNumber}
                   onChange={(e) =>
                     updatePart(part.id, "partNumber", e.target.value)
                   }
-                />
+                >
+                  <option value="">Select part</option>
+                  {PARTS_CATALOG.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="small-label">Description</label>
