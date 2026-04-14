@@ -1120,10 +1120,7 @@ export default function ClaimPage() {
                 required
               >
                 <option value="">Select country</option>
-                <option>France</option>
-                <option>Spain</option>
-                <option>Italy</option>
-                <option>Poland</option>
+                <option>United Kingdom</option>
               </select>
             </div>
           </Section>
