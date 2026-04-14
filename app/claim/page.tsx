@@ -1142,9 +1142,7 @@ export default function ClaimPage() {
                 required
               >
                 <option value="">Select warehouse</option>
-                <option>FRDISROU</option>
-                <option>FRDISHIL</option>
-                <option>FRDISPAR</option>
+                <option>PRINCIPAL</option>
               </select>
             </div>
           </Section>
