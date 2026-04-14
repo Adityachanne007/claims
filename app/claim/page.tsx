@@ -1142,7 +1142,7 @@ export default function ClaimPage() {
                 required
               >
                 <option value="">Select warehouse</option>
-                <option>PRINCIPAL</option>
+                <option>PRINCIPLE</option>
               </select>
             </div>
           </Section>
