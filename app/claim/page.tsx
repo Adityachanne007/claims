@@ -304,15 +304,17 @@ const css = `
   .issue-block {
     border-top: 3px solid var(--primary);
     position: relative;
+    margin-top: 8px;
   }
   .issue-block:first-of-type {
     border-top: none;
+    margin-top: 0;
   }
   .issue-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px 0;
+    padding: 20px 20px 12px;
   }
   .issue-tag {
     display: inline-flex;
