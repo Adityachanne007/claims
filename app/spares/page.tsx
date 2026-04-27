@@ -1013,7 +1013,7 @@ function StepConfirm({
 
   const handleSubmit = () => {
     const payload = {
-      partner: "Evri",
+      partner: "InPost",
       country,
       warehouse,
       deliveryDate,
@@ -1040,7 +1040,7 @@ function StepConfirm({
           <span className="confirm-icon"><Building2 size={18} /></span>
           <div>
             <div className="confirm-label">Partner</div>
-            <div className="confirm-value">Evri</div>
+            <div className="confirm-value">InPost</div>
           </div>
         </div>
 
@@ -1145,7 +1145,7 @@ function StepEmailConfirmation({
 
           <hr className="email-divider" />
 
-          <p className="email-text">Dear Evri,</p>
+          <p className="email-text">Dear InPost,</p>
 
           <p className="email-text">
             We have successfully received your request <strong>#{requestNumber}</strong>, submitted on{" "}
@@ -1241,7 +1241,7 @@ export default function SparesPage() {
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="spares-page">
         <div className="spares-header">
-          <h1>Order Parts - Evri</h1>
+          <h1>Order Parts - InPost</h1>
           <p>Select the parts you need and submit your order</p>
         </div>
 

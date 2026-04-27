@@ -1211,7 +1211,7 @@ export default function ClaimPage() {
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <div className="claim-page">
         <div className="claim-header">
-          <h1>Submit Claim for Evri</h1>
+          <h1>Submit Claim for InPost</h1>
           <p>Please fill out the form below to submit a claim</p>
         </div>
 
@@ -1261,7 +1261,7 @@ export default function ClaimPage() {
                     </div>
                     <div className="email-detail-row">
                       <span className="email-detail-label">Client Name</span>
-                      <span className="email-detail-value">Evri</span>
+                      <span className="email-detail-value">InPost</span>
                     </div>
                     <div className="email-detail-row">
                       <span className="email-detail-label">Country of Claim</span>
